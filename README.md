@@ -43,19 +43,66 @@ docker run -it --rm -p 8888:8888 taco-jupyterlab
 Open the printed URL in your browser to access Jupyterlab. The jupyter notebook `work/pipeline.ipynb` is a good starting point.
 
 
-## Install TACO with conda
+## Install and run TACO with conda
 
-Basing on [Miniconda](https://docs.conda.io/en/latest/miniconda.html), TACO can be installed with
+### a) On Ubuntu
+
+Basing on [Miniconda](https://docs.conda.io/en/latest/miniconda.html), you can create a virtual environment for TACO by executing the following command in a terminal window;
 
 ```
-conda env create
+conda env create -f environment.yml
+```
+
+Before running TACO the virtual environment has to be activated:
+
+```
 conda activate taco
 ```
 
-## Install TACO with conda
+### b) On Windows
 
-Download and install the packages as per the requirements.txt file.
+TO run TACO on a Windows machine, we recommend to use the Windows Subsystem for Linux (WSL). This can easily be set up by running in a PowerShell terminal (as admin)
 
+```
+wsl --install
+```
+An installation guide and additional requirements for the Ubuntu subsystem can be found [here](https://learn.microsoft.com/en-us/windows/wsl/install).
+
+After setting up the subsytem, download the Anaconda Installer for Ubuntu and copy it onto the Ubuntu machine (accessible through File Explorer). By executing the following command in an Ubuntu terminal, you can install Anaconda on your Ubuntu subsystem.
+
+```
+bash /Path/to/installer/Anaconda3-2024.xx-x-Linux-x86_xx.sh
+```
+
+Next you need to create a virtual environment for TACO by executing the following command in an Ubuntu terminal window:
+
+```
+conda env create -f environment.yml
+```
+
+Before running TACO the virtual environment has to be activated:
+
+```
+conda activate taco
+```
+
+### c) On MAC OS
+
+**Note**
+
+It is recommended to use the Intel Anaconda version (not M1/M2/M3 -chip specific) to run TACO.
+
+Basing on [Miniconda](https://docs.conda.io/en/latest/miniconda.html), you can create a virtual environment for TACO by executing the following command in a terminal window;
+
+```
+conda env create -f environment.yml
+```
+
+Before running TACO the virtual environment has to be activated:
+
+```
+conda activate taco
+```
 ## Running high-throughput pipeline
 
 For processing a long list of stars the high-throughput pipeline is available.
@@ -65,7 +112,7 @@ export PATH=$PWD/src:$PATH
 export PYTHONPATH=$PWD/src:$PWD/libs/sloscillations:$PYTHONPATH
 ```
 once from the TACO root directory.
-Then the high-troughput pipline can be started with 
+Then the high-troughput pipline can be started with
 ```
 pipeline.py -i <input directory> -s <settings file>
 ```
@@ -74,15 +121,12 @@ A settings file with all entries is available at `pipeline/pipeline_settings_ful
 
 **Tip**
 
-Copy the settings-file into a result directory and executing the pipline from there, leaves the run parameters documented.
+Copy the settings-file into a result directory and executing the pipeline from there, leaves the run parameters documented.
 
 
 ## Tested operation system architectures
 
-TACO docker-jupyterlab was tested on:
- - Linux (Ubuntu and CentOS)
- - MacOS (M1-Chip) (please consider https://github.com/HITS-TOS/TACO/issues/25)
- - Windows 11, Docker engine 4.15.0 using  WSL 2
-
 TACO conda high-throughput pipeline was tested on:
- - Linux (CentOS)
+ - Linux (Ubuntu and CentOS)
+ - MacOS (Intel and M1-Chip)
+ - Windows 11 using  WSL 2
