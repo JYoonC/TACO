@@ -60,21 +60,22 @@ def pipeline(argv):
 
     if not argv.quiet:
         print('Number of input files: ', len(input_files))
-        
+
     #output files
     summaryfile = settings['pipeline'][11]['filenames']['summary']
     pdsfile = settings['pipeline'][11]['filenames']['pds']
     oversampled_pdsfile = settings['pipeline'][11]['filenames']['oversampled_pds']
     background_corrected_pdsfile = settings['pipeline'][11]['filenames']['background_corrected_pds']
+    background_corrected_pdsfull = settings['pipeline'][11]['filenames']['background_corrected_pds_full']
     background_corrected_oversampled_pdsfile = settings['pipeline'][11]['filenames']['background_corrected_oversampled_pds']
     resolved_modesfile= settings['pipeline'][11]['filenames']['resolved_modes']
     mle_resolved_modesfile= settings['pipeline'][11]['filenames']['mle_resolved_modes']
     mixed_modesfile= settings['pipeline'][11]['filenames']['mixed_modes']
     mle_mixed_modesfile= settings['pipeline'][11]['filenames']['mle_mixed_modes']
     final_modesfile= settings['pipeline'][11]['filenames']['final_modes']
-    
+
     # open a csv files to log the stars that have been processed + their flags
-    
+
     if not argv.start_function:
         path_to_file = 'stars.csv'
     else:
@@ -86,7 +87,7 @@ def pipeline(argv):
             path_to_file = 'stars_unresolved_modes.csv'
         if argv.start_function == "final_fit":
             path_to_file = 'stars_final_fit.csv'
-    
+
     path = Path(path_to_file)
     if path.is_file():
       print(f'The file {path_to_file} exists')
@@ -95,7 +96,7 @@ def pipeline(argv):
             writer = csv.writer(fstar, delimiter = ',')
             writer.writerow(['ID', 'flag_numax', 'flag_bgr', 'flag_mle_resolved','flag_02','flag_mle_mixed','flag_mle_final','flag_dP'])
         fstar.close()
-        
+
     data = pd.read_csv(path_to_file, dtype='string')
     stars_done = data['ID'].tolist()
     # Loop over input directories
@@ -108,7 +109,7 @@ def pipeline(argv):
             if not argv.start_function:
                 Path(argv.output_directory, input_name).mkdir(exist_ok = True)
                 ts_raw = pd.read_csv(input_file, comment = '#', header = None, delim_whitespace = True)
-            
+
             with open(path_to_file, mode = 'a') as fstar:
                 writer = csv.writer(fstar, delimiter = ',')
                 #set all flags to -1
@@ -142,7 +143,7 @@ def pipeline(argv):
                     print('2) Compute oversampled PDS')
                     oversampled_pds = taco.calc_pds(ts_filtered, **settings['pipeline'][2]['oversampled_pds'],
                         output_directory = Path(argv.output_directory, input_name))
-                
+
                     # Set Nyquist frequency
                     summary["nuNyq"] = pds["frequency"].iloc[-1]
 
@@ -150,7 +151,7 @@ def pipeline(argv):
                     print('\n3) Estimate number of power excess with CV method')
                     results_cv, pds = taco.cv_method(pds)
                     flag_cv = results_cv['flag_cv'][0]
-                    
+
                     results_cv.to_csv(Path(argv.output_directory, input_name, "cv_analysis.csv"), index = False)
 
                     # Add interpolation flag and cv_flag to summary file:
@@ -159,18 +160,18 @@ def pipeline(argv):
                     summary.to_csv(Path(argv.output_directory, input_name, summaryfile), index = False)
 
                     # Only check stars if number of possible power-excess is less than 2:
-                    if flag_cv < 2:
+                    if flag_cv < 5:         # Turn off the cv_method by changing the criteria
                         # 4) Estimate numax
                         print('4) Estimate numax')
                         summary, flag_numax = taco.numax_estimate(pds, summary,
                             **settings['pipeline'][3]['numax_estimate'])
-                    
+
                         summary.to_csv(Path(argv.output_directory, input_name, summaryfile), index = False)
-                    
+
                     else:
                         print('Found more than one power excess. Stopping analysis!')
-                    
-                   
+
+
                 else:
                     pathsummary = Path(argv.output_directory, input_name, summaryfile)
                     pathpds = Path(argv.output_directory, input_name, pdsfile)
@@ -185,8 +186,8 @@ def pipeline(argv):
                         flag_cv = summary['n_osc'][0]
                         pds = pd.read_csv(Path(argv.output_directory, input_name, pdsfile), delimiter = ',')
                         oversampled_pds = pd.read_csv(Path(argv.output_directory, input_name, oversampled_pdsfile), delimiter = ',')
-                
-                if  flag_cv < 2 and flag_numax <= 1:
+
+                if  flag_cv < 5 and flag_numax <= 1:            # Turn off the cv_method by changing the criteria
                     if not argv.start_function or argv.start_function == "background":
                         # 5) Background fit
                         print('5) Fit background')
@@ -197,11 +198,13 @@ def pipeline(argv):
                         if flag_bgr != 1:
                             summary.to_csv(Path(argv.output_directory, input_name, summaryfile), index = False)
                             pds_bgr.to_csv(Path(argv.output_directory, input_name, background_corrected_pdsfile), index = False)
+                            pds_bgr.to_csv(Path(argv.output_directory, input_name, background_corrected_pdsfull), index = False)
                             oversampled_pds_bgr.to_csv(Path(argv.output_directory, input_name, background_corrected_oversampled_pdsfile), index = False)
                     else:
                         pds_bgr = pd.read_csv(Path(argv.output_directory, input_name, background_corrected_pdsfile), delimiter = ',')
+                        pds_bgr.to_csv(Path(argv.output_directory, input_name, background_corrected_pdsfull), index = False)
                         oversampled_pds_bgr = pd.read_csv(Path(argv.output_directory, input_name, background_corrected_oversampled_pdsfile), delimiter = ',')
-                
+
                     if flag_bgr <= 0:
                         if not argv.start_function or argv.start_function == "background" or argv.start_function == "resolved_modes":
                             # 6) Find peaks
@@ -209,7 +212,7 @@ def pipeline(argv):
                             peaks = taco.peak_find(pds_bgr, oversampled_pds_bgr, summary,
                                 **settings['pipeline'][5]['peak_find'])
                             peaks.to_csv(Path(argv.output_directory, input_name, resolved_modesfile), index = False)
-    
+
                             # 7) MLE
                             if (len(peaks.frequency)) >= 1:
                                 print('7) MLE fit resolved peaks')
@@ -217,7 +220,7 @@ def pipeline(argv):
                                     **settings['pipeline'][6]['peaks_mle'])
                                 summary.to_csv(Path(argv.output_directory, input_name, summaryfile), index = False)
                                 peaks_mle.to_csv(Path(argv.output_directory, input_name, mle_resolved_modesfile), index = False)
-            
+
                                 # 8) Bag mode id02
                                 if (((len(peaks_mle.frequency)) >= 3) and (flag_mle_resolved == 0.0)):
                                     print('8) Identify 0,2 modes')
@@ -235,7 +238,7 @@ def pipeline(argv):
                                     flag_02 = 1
                             else:
                                 flag_mle_resolved = 1
-        
+
                         # 9) Find mixed peaks
                         if flag_02 == 0.0:
                             if not argv.start_function or argv.start_function == "background" or argv.start_function == "resolved_modes" or argv.start_function == "unresolved_modes":
@@ -259,7 +262,7 @@ def pipeline(argv):
                                     flag_mle_mixed = 0
                                 else:
                                     flag_mle_mixed = 1
-                            
+
                             # 11) Final fit
                             if (flag_mle_mixed == 0):
                                 if not argv.start_function or argv.start_function == "background" or argv.start_function == "resolved_modes" or argv.start_function == "unresolved_modes" or argv.start_function == "final_fit":
@@ -283,7 +286,7 @@ def pipeline(argv):
                 writer.writerow([input_name, flag_numax, flag_bgr, flag_mle_resolved, flag_02, flag_mle_mixed, flag_mle_final, flag_dP])
             fstar.close()
     t.stop()
-    
+
 
 if __name__ == "__main__":
 
@@ -294,6 +297,8 @@ if __name__ == "__main__":
                         help="Output directory for resulting data (default = '.').")
     parser.add_argument('--settings-file', '-s', default='pipeline_settings.yaml',
                         help="File with pipeline settings in Yaml (default = 'pipeline_settings.yaml').")
+
+    # TACO can start from specific function without running whole process if start_function is defined.
     parser.add_argument('--start_function', '-start', default=0,
                         help="Function to start the analysis with: background, resolved_modes, unresolved_modes, final_fit (default = 'lightcurve')")
     parser.add_argument('--verbose', '-v', default=0, action='count',

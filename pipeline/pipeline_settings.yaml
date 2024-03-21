@@ -28,6 +28,7 @@ pipeline:
         output_backg_model: out_backg_model.pkl
         output_ofac_pds_bgr: ofac_pds_bgr.csv
         output_pds_bgr: pds_bgr.csv
+        output_pds_bgr_full: pds_bgr_full.csv
         output_quantiles: pds_fit_quantiles.csv
         posterior: pds_fit_posterior.h5
         save_posteriors: False
@@ -37,7 +38,7 @@ pipeline:
         prob: 0.0001
         minAIC: 2
         navg: 1
-        maxlwd: 
+        maxlwd:
     - peaks_mle:
         minAIC: 2
         maxlwd:
@@ -66,6 +67,7 @@ pipeline:
         pds: pds.csv
         oversampled_pds: oversampled_pds.csv
         background_corrected_pds: pds_bgr.csv
+        background_corrected_pds_full: pds_bgr_corr_full.csv
         background_corrected_oversampled_pds: oversampled_pds_bgr.csv
         resolved_modes: peaks.csv
         mle_resolved_modes: peaks_mle.csv
