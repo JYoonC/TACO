@@ -1,32 +1,67 @@
-import numpy as np 
 
+# Package 
+import numpy as np 
 from scipy import interpolate
 from scipy.optimize import brentq
-
-
-import matplotlib
-matplotlib.use('TKAgg')
-
-import matplotlib.pyplot as plt
-
-import functools
 from scipy.integrate import quad
 import streamlit as st
-
 import itertools
+
+
+# Plot 
+import matplotlib
+matplotlib.use('TKAgg')
+import matplotlib.pyplot as plt
+
+
+
+# Etc 
+import functools
+
+
+
+
 
 #https://stackoverflow.com/questions/2566412/find-nearest-value-in-numpy-array
 def find_nearest(array, value):
+    """ 
+    Example : 
+        array = np.random.random(10)
+        print(array)
+        -> [ 0.21069679  0.61290182  0.63425412  0.84635244  0.91599191  0.00213826
+            0.17104965  0.56874386  0.57319379  0.28719469]
+
+        print(find_nearest(array, value=0.5))
+        ->  0.568743859261
+    """
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
     return array[idx]#, idx
 
+
+##############################
+# ----- Math Functions ----- # 
+##############################
 def _sLor(f, A, b, c):
     return A / (1 + (f / b) ** c)
 
 def _sinc(x):
     return np.sinc(x/np.pi)
 
+def lorentzian(f, amp, lw, freq):
+    height = 2*amp**2/(np.pi*2*lw)
+    x = (2/lw) * (f - freq)
+    return height / (1 + x**2)
+
+def sinc_sq(f, amp, lw, freq):
+    height = amp**2 / (np.pi * (f[1]-f[0]))
+    return height*np.sinc((f-freq)/(f[1]-f[0]))**2
+
+
+
+################################
+# ----- Background Model ----- # 
+################################
 def bgModel(nu, theta, nuNyq, n_comps, n_gauss, individual=True):
     """
     Background model value at a given frequency 'nu'
@@ -72,14 +107,6 @@ def bgModel(nu, theta, nuNyq, n_comps, n_gauss, individual=True):
         return comps, comp_names, model, model_no_osc
     return model, model_no_osc
 
-def lorentzian(f, amp, lw, freq):
-    height = 2*amp**2/(np.pi*2*lw)
-    x = (2/lw) * (f - freq)
-    return height / (1 + x**2)
-
-def sinc_sq(f, amp, lw, freq):
-    height = amp**2 / (np.pi * (f[1]-f[0]))
-    return height*np.sinc((f-freq)/(f[1]-f[0]))**2
 
 def model(f, row):
     if np.isfinite(row['linewidth']):

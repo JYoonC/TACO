@@ -1,64 +1,71 @@
-import site
-import sys
-site.addsitedir('../')
-#import sys
 
-#sys.path.insert(0, '../libs/sloscillations')
-
-#import site
-
-#site.addsitedir('../libs/sloscillations')
-
-
-from bokeh.models.layouts import Column
-from numpy.lib.function_base import angle
+# Package 
 import streamlit as st
-st.write(st.__version__)
-
 import SessionState
-
-from bokeh.models import ColumnDataSource, Whisker, HoverTool, Span
-from bokeh.transform import factor_cmap, factor_mark
-
 import glob
 import pandas as pd
 import numpy as np
 import pathlib
-import matplotlib.pyplot as plt
-
-from bokeh.plotting import figure, show
-import app_helpers
-
-from bokeh.palettes import Greys256, Colorblind7
-
 from scipy.interpolate import interp1d
-
-from pathlib import Path
-
 import itertools
 
-def find_directory():
-    dir = Path().cwd().parent
-    dirs = [str(item).split('/')[-1] for item in Path(dir).rglob('results*')]
-    return dirs
-    
+# Plot 
+from bokeh.models.layouts import Column
+from numpy.lib.function_base import angle
+from bokeh.models import ColumnDataSource, Whisker, HoverTool, Span
+from bokeh.transform import factor_cmap, factor_mark
+import matplotlib.pyplot as plt
+from bokeh.plotting import figure
+from bokeh.palettes import Greys256, Colorblind7
 
-def find_stars(selected_dir):
-    dir = Path().cwd().parent / selected_dir
-    dirs = dir.rglob('*/summary.csv')
-    KICs = ['KIC '+str(i).split('/')[-2].lstrip('0') for i in dirs]
-    return KICs
+
+# Code 
+import app_helpers
+
+
+# System 
+import site
+import sys
+site.addsitedir('../')
+sys.path.insert(0,'/Users/jychoi/phd/project/data/star')
+from pathlib import Path
+
+
+#Example of package 'sys' : 
+#    To modify the python sys.path variable. 
+#    sys.path : list of directories to search for modules 
+#    0 : index at which you want to insert the new path 
+#    -> Adding a directory to 'sys.path' at index 0 means that Python will 
+#    check this directory first when looking for modules to import. 
+#    The directories in 'sys.path' are searched in order, and by inserting
+#    at index 0, you are giving the specified directory the highest priority. 
+
+
+####################
+# ----- Path ----- # 
+####################
+def find_directory():
+    dir = sys.path[0]
+    dirs = [str(item).split('/')[-1] for item in Path(dir).rglob('stars*')]
+    #dirs = [str(item).split('/')[-1] for item in Path(dir).iterdir()]
+    return dirs
+
+def find_stars(selected_dir): 
+    dir = sys.path[0]+"/"+str(selected_dir)
+    dirs = [str(item).split('/')[-1] for item in Path(dir).iterdir() if item.is_dir() and item.name.startswith("0")]
+    print(dirs)
+    return dirs    
 
 #@st.cache
 def load_summary(selected_dir,KIC):
-    dir = Path().cwd().parent / selected_dir
+    dir = sys.path[0]+"/"+str(selected_dir)+"/"+str(KIC) 
     KIC = KIC.lstrip('KIC ').zfill(9)
-    summary = pd.read_csv(str(dir)+'/'+str(KIC)+'/summary.csv')
+    summary = pd.read_csv(str(dir)+'/summary.csv')
     return summary
 
 #@st.cache
 def load_psd(selected_dir, KIC, background_removed=True):
-    dir = Path().cwd().parent / selected_dir
+    dir = sys.path[0]+"/"+str(selected_dir)
     KIC = KIC.lstrip('KIC ').zfill(9)
     #print(KIC)
     if background_removed == True:
@@ -68,16 +75,16 @@ def load_psd(selected_dir, KIC, background_removed=True):
         #st.write(psd)
     return psd
 
+
 def load_ts(selected_dir, KIC, filtered=True):
-    dir = Path().cwd().parent / selected_dir
+    dir = sys.path[0]+"/"+str(selected_dir)
     KIC = KIC.lstrip('KIC ').zfill(9)
    # print(KIC)
     if filtered == True:
         ts = pd.read_csv(str(dir)+'/'+str(KIC)+'/filtered.csv')
     else:
  #       ts = pd.read_csv(str(dir)+'/'+str(KIC)+'.dat', names=['time', 'flux'], comment = '#', header = None, delim_whitespace = True)
-         ts = pd.read_csv(str(dir)+'/'+str(KIC)+'.dat', delimiter=r'\s+', names=['time', 'flux', 'err_flux'], comment = '#')
-
+         ts = pd.read_csv(str(dir)+'/'+str(KIC)+'/'+str(KIC)+'.dat', delimiter=r'\s+', names=['time', 'flux', 'err_flux'], comment = '#')
 
  #   if ts.flux.mean() > 1e3:
     #    ts.flux -= ts.flux.mean()
@@ -88,21 +95,21 @@ def load_ts(selected_dir, KIC, filtered=True):
 
 #@st.cache
 def load_peaks(selected_dir, KIC, peakFind=False, resolved=False, final=True):
-    dir = Path().cwd().parent / selected_dir
+    dir = sys.path[0]+"/"+str(selected_dir)
     KIC = KIC.lstrip('KIC ').zfill(9)
     if peakFind == False:
         if resolved == False:
-            mixed_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/mixed_peaks_mle.csv')
+            mixed_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/mixed_peaks_MLE.csv')
             if mixed_peaks_MLE_file.is_file():
                 peaks = pd.read_csv(mixed_peaks_MLE_file)
             #peaks = pd.read_csv(str(dir)+'/'+str(KIC)+'/mixed_peaks_MLE.csv')
         else:
-            peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/peaks_mle.csv')
+            peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/peaks_MLE.csv')
             if peaks_MLE_file.is_file():
                 peaks = pd.read_csv(peaks_MLE_file)
             #peaks = pd.read_csv(str(dir)+'/'+str(KIC)+'/peaks_MLE.csv')
         if final == True:
-            final_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/final_peaks_mle.csv')
+            final_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/final_peaks_MLE.csv')
             if final_peaks_MLE_file.is_file():
                 peaks = pd.read_csv(final_peaks_MLE_file)
             #peaks = pd.read_csv(str(dir)+'/'+str(KIC)+'/final_peaks_MLE.csv')
@@ -132,10 +139,10 @@ def visualise_timeseries(filtered_ts, unfiltered_ts, summary):
         #y_range=(psd.power.min()*0.5, psd.power.max()*1.1)
     )
     p.line(unfiltered_ts.time, unfiltered_ts.flux, color='black', legend_label=r'Unfiltered timeseries')
-    
+
     if st.sidebar.checkbox("Show filtered timeseries"):
-        p.line(filtered_ts.time, filtered_ts.flux, color='red', legend_label=r'Filtered timeseries')
-    
+        p.line(filtered_ts.time, filtered_ts.flux, alpha=0.6, color='red', legend_label=r'Filtered timeseries')
+        
     p.legend.click_policy="hide"
     st.bokeh_chart(p)
 
@@ -314,7 +321,7 @@ def visualise_pds_bgr(selected_dir,KIC,psd_bgr, summary):
             # Have to add background of 1 as not included when individual models created
         #    p.line(psd_bgr.frequency, model_l02+1, color="green", line_width=3, legend_label="l=0/2 (Even)")
         #    p.line(psd_bgr.frequency, model_l1+1, color="red", line_width=3, legend_label="l=1/3 (Odd)")
-    dir = Path().cwd().parent / selected_dir
+    dir = sys.path[0]+"/"+str(selected_dir)
     KIC = KIC.lstrip('KIC ').zfill(9)
      
     peaks_file = Path(str(dir)+'/'+str(KIC)+'/peaks.csv')
@@ -328,7 +335,7 @@ def visualise_pds_bgr(selected_dir,KIC,psd_bgr, summary):
     else:
         st.write("no resolved mode peaks were obtained")
      
-    peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/peaks_mle.csv')
+    peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/peaks_MLE.csv')
     if peaks_MLE_file.is_file():
         overplot_even_fit = False
         if st.sidebar.checkbox("Overplot even mode MLE fit"):
@@ -351,7 +358,7 @@ def visualise_pds_bgr(selected_dir,KIC,psd_bgr, summary):
     else:
         st.write("no odd mode peaks were obtained")
     
-    mixed_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/mixed_peaks_mle.csv')
+    mixed_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/mixed_peaks_MLE.csv')
     if mixed_peaks_MLE_file.is_file():
         overplot_odd_fit = False
         if st.sidebar.checkbox("Overplot odd mode MLE fit"):
@@ -364,7 +371,7 @@ def visualise_pds_bgr(selected_dir,KIC,psd_bgr, summary):
         
 
         
-    final_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/final_peaks_mle.csv')
+    final_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/final_peaks_MLE.csv')
     if final_peaks_MLE_file.is_file():
         peaks = pd.read_csv(final_peaks_MLE_file)
         if st.sidebar.checkbox("Mode identification"):
@@ -443,9 +450,9 @@ def visualise_pds_bgr(selected_dir,KIC,psd_bgr, summary):
 
 def visualise_echelle(selected_dir, KIC, psd_bgr, summary, session):
 
-    dir = Path().cwd().parent / selected_dir
+    dir = sys.path[0]+"/"+str(selected_dir)
     KIC = KIC.lstrip('KIC ').zfill(9)
-    final_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/final_peaks_mle.csv')
+    final_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/final_peaks_MLE.csv')
     if final_peaks_MLE_file.is_file():
         peaks = pd.read_csv(final_peaks_MLE_file)
         
@@ -556,7 +563,9 @@ def visualise_echelle(selected_dir, KIC, psd_bgr, summary, session):
             p.multi_line(xs="red_freq", ys="frequency",
                line_width=2,
                line_color="line_color",
-               line_dash=[5,5], alpha=0.4, source=ridge_source)
+               alpha=0.4, source=ridge_source) # line_dash=[5,5]  
+            # To overplot theoretical frequencies, remove "line_dash=[5,5]"
+                
             #p.line(x="l2_ridge", y="l2_ridge_freq", line_width=2, color="green", line_dash=[5,5], alpha=0.4)
 
 
@@ -632,9 +641,9 @@ def visualise_echelle(selected_dir, KIC, psd_bgr, summary, session):
         
 def visualise_stretched_echelle(selected_dir, KIC, psd_bgr, summary, session):
 
-    dir = Path().cwd().parent / selected_dir
+    dir = sys.path[0]+"/"+str(selected_dir)
     KIC = KIC.lstrip('KIC ').zfill(9)
-    final_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/final_peaks_mle.csv')
+    final_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/final_peaks_MLE.csv')
     if final_peaks_MLE_file.is_file():
         peaks = pd.read_csv(final_peaks_MLE_file)
     
@@ -775,9 +784,9 @@ def visualise_stretched_echelle(selected_dir, KIC, psd_bgr, summary, session):
     
 def visualise_reggae(selected_dir, KIC, psd_bgr, summary, session):
 
-    dir = Path().cwd().parent / selected_dir
+    dir = sys.path[0]+"/"+str(selected_dir)
     KIC = KIC.lstrip('KIC ').zfill(9)
-    final_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/final_peaks_mle.csv')
+    final_peaks_MLE_file = Path(str(dir)+'/'+str(KIC)+'/final_peaks_MLE.csv')
     if final_peaks_MLE_file.is_file():
         peaks = pd.read_csv(final_peaks_MLE_file)
     
@@ -982,33 +991,42 @@ def visualise_reggae(selected_dir, KIC, psd_bgr, summary, session):
 def main():
     
     st.title("TACO Explorer App")
-    #st.markdown("Explore the stars you have analysed to your hearts content!!!")
+    # st.markdown("ㅇㅣㄴㅅㅐㅇㅅㅏ ㅅㅐㅇㅗㅇㅈㅣㅁㅏ, ㅈㅏㄹ ㅎㅏㄱㅗ ㅇㅣㅆㄷㅏ !")
 
     session = SessionState.get(run_id=0)
     # File uploader
     #if uploaded_file is not None:
     dirs = find_directory()
-    st.sidebar.header("Please select a directory")
+    st.sidebar.header("Please select a working directory")
     selected_dir = st.sidebar.selectbox(
                     "",
                     ["", *dirs]
     )
-    if selected_dir != "":
+    if selected_dir != "": 
         KICs = find_stars(selected_dir)
-        st.sidebar.header("Please select a star to analyse")
+        st.sidebar.header("Please select a star")
         selected_KIC = st.sidebar.selectbox(
-                    "",
-                    ["", *KICs]
+                        "",
+                        ["", *KICs]
         )
+    
+        #if selected_dir != "":
+        #    KICs = choose_stars(working_dirs+"/"+selected_dir)
+        #    st.sidebar.header("Please select a star to analyse")
+        #    selected_KIC = st.sidebar.selectbox(
+        #                "",
+        #                ["", *KICs]
+        #    )
+            
         if selected_KIC != "":
 
             #'You selected ', selected_KIC
             st.sidebar.header("Choose a page")
             page = st.sidebar.selectbox("",
                                     ["", "Timeseries", "Background Fit",
-                                     "MLE Fit", "Frequency Echelle",
-                                     "Stretched Period Echelle",
-                                     "Mode matching"])
+                                    "MLE Fit", "Frequency Echelle",
+                                    "Stretched Period Echelle",
+                                    "Mode matching"])
             summary = load_summary(selected_dir, selected_KIC)
             if page == "Timeseries":
                 st.header("Timeseries Data")
