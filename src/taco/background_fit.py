@@ -19,6 +19,7 @@ class Settings(object):
         self.output_backg_model = 'out_backg_model.pkl'
         self.output_ofac_pds_bgr = 'ofac_pds_bgr.csv'
         self.output_pds_bgr = 'pds_bgr.csv'
+        self.output_pds_bgr_full = 'pds_bgr_full.csv'
         self.output_quantiles = 'pds_fit_quantiles.csv'
         self.posterior = 'pds_fit_posterior.h5'
         self.save_posteriors = False
@@ -87,25 +88,25 @@ def background_fit(pds, ofac_pds, data, output = '', output_directory = '', **kw
     #print(data['numax0_sd'][0])
     j = 1
     done_q = False
-    
+
     while (j < 3 and not done_q):
         if (data['numax0_sd'][0] < data['numax0'][0]/10.0):
             data['numax0_sd'][0] = data['numax0'][0]/5.0
-        
+
         if (data['numax0_sd'][0] > data['numax0'][0]/4.0):
             data['numax0_sd'][0] = data['numax0'][0]/4.0
-                    
+
         if (j > 1):
             data['numax0'][0] = np.nanmean([data['numax_var'][0],data['numax_Morlet'][0],data['numax_CWTMexHat'][0]])
             data['numax0_sd'][0] = max([data['numax_var'][0],data['numax_Morlet'][0],data['numax_CWTMexHat'][0]]) - np.nanmin([data['numax_var'][0],data['numax_Morlet'][0],data['numax_CWTMexHat'][0]])
-        
+
         #print(data['numax0_sd'][0])
         bg_fit = bkg_model(pds, data['numax0'][0], data['numax0_sd'][0], data['nuNyq'][0], logfile = Path(output_directory,settings.logfile))
         minESS = mESS.minESS(bg_fit.ndim, alpha=0.05, eps=0.1)
         i = 0
         done_p = False
         flag = 0
-        
+
         try:
             print("Starting initial MCMC with binned PDS. Number of bins:", settings.bins)
             bg_fit.MCMC(bg_fit.bg_params, output_directory, **settings.get_mcmc_settings())  # MCMC with binned PDS
@@ -194,7 +195,7 @@ def background_fit(pds, ofac_pds, data, output = '', output_directory = '', **kw
             data['Hmax'] = full_model[idx_closest_numax].values
             data['Bmax'] = model[idx_closest_numax].values
             data['HBR'] = data['Hmax'] / data['Bmax']
-            
+
             if (data['HBR'][0] > 1.05):
                 done_q = True
 
@@ -204,7 +205,7 @@ def background_fit(pds, ofac_pds, data, output = '', output_directory = '', **kw
                 bkg_summary.to_csv(Path(output_directory,settings.output_quantiles), index = False)
             else:
                 j=j+1
-                
+
     if (not done_q):
         print("too low amplitude of power excess")
         flag = 2
@@ -212,7 +213,7 @@ def background_fit(pds, ofac_pds, data, output = '', output_directory = '', **kw
             data[row['parameter']] = row['Q50']
 
         bkg_summary.to_csv(Path(output_directory,settings.output_quantiles), index = False)
-        
+
     if (not done_p and not done_q):
         print("Giving up")
         flag = 1

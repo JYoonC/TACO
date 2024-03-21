@@ -43,7 +43,7 @@ def main(argv):
     flag = 0
     print("flag")
     print(flag)
-    
+
     try:
         print("Starting initial MCMC with binned PDS. Number of bins: %s" % kw["bins"])
         bgFit.MCMC(bgFit.bg_params, **kw)  # MCMC with binned PDS
@@ -104,7 +104,7 @@ def main(argv):
             flatchain = reader.get_chain(discard=argv.nwarmup, flat=True)
             lnprob = reader.get_log_prob(discard=argv.nwarmup, flat=True)
         else:
-            # Flattened chains and log-probability         
+            # Flattened chains and log-probability
             #tau = bgFit.MCMC_sampler.get_autocorr_time()
             #print(f"Autocorrelation time: {tau}")
             #print(argv.nwarmup)
@@ -155,7 +155,7 @@ def main(argv):
         bkg_summary.to_csv(argv.quantiles, index=False)
         pds_bgr.to_csv(argv.pds_bgr, index=False)
         ofac_pds_bgr.to_csv(argv.ofac_bgr, index=False)
-        
+
 
 
 ## ======================
@@ -192,6 +192,8 @@ if __name__ == "__main__":
     parser.add_argument("--pds_bgr", dest="pds_bgr", default = "pds_bgr.csv",
                     help = "File name on which to save the background-corrected PDS",
                     type = str)
+    parser.add_argument("--pds_bgr_full", dest="pds_bgr_full", default = "pds_bgr_full.csv",
+                        help = "File name on which to save the background-corrected full PDS", type = str)
     parser.add_argument("--ofac_bgr", dest="ofac_bgr", default = "ofac_pds_bgr.csv",
                     help = "File name on which to save the background-corrected oversampled PDS",
                     type = str)
